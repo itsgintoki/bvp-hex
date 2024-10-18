@@ -9,10 +9,27 @@ const fetchFoodData = async (query) => {
     const response = await axios.get(`https://api.nal.usda.gov/fdc/v1/foods/search`, {
       params: {
         api_key: API_KEY,
-        query: query
+        query: query,
+        pageSize: 1 // Limit to 5 results for example
       }
     });
-    return response.data;
+
+    // Process and filter the data
+    const processedFoods = response.data.foods.map(food => ({
+      description: food.description,
+      foodCategory: food.foodCategory || 'Unknown',
+      ingredients: food.ingredients || 'Not listed',
+      servingSize: food.servingSize ? `${food.servingSize} ${food.servingSizeUnit || ''}` : 'Not specified',
+      keyNutrients: food.foodNutrients
+        .filter(nutrient => ['Protein', 'Total lipid (fat)', 'Carbohydrate, by difference', 'Energy'].includes(nutrient.nutrientName))
+        .map(nutrient => ({
+          name: nutrient.nutrientName,
+          amount: nutrient.value,
+          unit: nutrient.unitName
+        }))
+    }));
+
+    return processedFoods;
   } catch (error) {
     console.error('Error fetching food data:', error);
     throw error;
